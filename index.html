@@ -1,0 +1,1095 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Aula Interativa | Regressão Logística Binária</title>
+<style>
+:root{
+  --bg:#f6f8fb;
+  --panel:#ffffff;
+  --ink:#1f2937;
+  --muted:#64748b;
+  --line:#dbe3ef;
+  --primary:#0f766e;
+  --primary-dark:#115e59;
+  --primary-soft:#ccfbf1;
+  --accent:#b45309;
+  --accent-soft:#ffedd5;
+  --danger:#b91c1c;
+  --danger-soft:#fee2e2;
+  --good:#166534;
+  --good-soft:#dcfce7;
+  --blue:#1d4ed8;
+  --blue-soft:#dbeafe;
+  --purple:#6d28d9;
+  --purple-soft:#ede9fe;
+  --shadow:0 18px 45px rgba(15,23,42,.10);
+  --radius:22px;
+}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{
+  margin:0;
+  font-family:Inter, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  color:var(--ink);
+  background:
+    radial-gradient(circle at top left, rgba(15,118,110,.15), transparent 34rem),
+    radial-gradient(circle at top right, rgba(180,83,9,.12), transparent 34rem),
+    var(--bg);
+  line-height:1.6;
+}
+a{color:var(--primary-dark);text-decoration:none}
+.hero{
+  background:linear-gradient(135deg,#073b3a,#0f766e 55%,#115e59);
+  color:white;
+  border-radius:30px;
+  padding:46px 42px;
+  box-shadow:var(--shadow);
+  position:relative;
+  overflow:hidden;
+  height:100%;
+  display:flex;flex-direction:column;justify-content:center;
+}
+.hero::after{
+  content:"";
+  position:absolute;
+  width:420px;height:420px;
+  border-radius:50%;
+  background:rgba(255,255,255,.08);
+  right:-110px;top:-170px;
+}
+.hero h1{font-size:clamp(2rem,5vw,4rem);line-height:1.05;margin:0 0 14px;font-weight:850;letter-spacing:-.04em}
+.hero p{max-width:820px;font-size:1.15rem;color:#e6fffb;margin:0 0 24px}
+.badges{display:flex;gap:10px;flex-wrap:wrap;margin-top:18px}
+.badge{display:inline-flex;align-items:center;gap:7px;background:rgba(255,255,255,.14);border:1px solid rgba(255,255,255,.25);padding:8px 12px;border-radius:999px;color:white;font-weight:650;font-size:.88rem}
+
+/* Presentation shell */
+.topbar{position:fixed;top:0;left:0;right:0;height:62px;background:rgba(255,255,255,.94);backdrop-filter:blur(10px);border-bottom:1px solid var(--line);z-index:60;display:flex;align-items:center;justify-content:space-between;padding:0 18px;box-shadow:0 4px 16px rgba(15,23,42,.05)}
+.topbar-left{display:flex;align-items:center;gap:12px;min-width:0}
+.topbar-left .name{font-weight:800;color:#0f172a;font-size:.98rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.topbar-left .slide-eyebrow{font-size:.78rem;color:var(--muted);font-weight:650;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.topbar-right{display:flex;align-items:center;gap:10px}
+.topbar-btn{border:1px solid var(--line);background:#fff;border-radius:12px;padding:8px 12px;font-weight:750;cursor:pointer;color:#334155;display:flex;align-items:center;gap:6px;font-size:.88rem}
+.topbar-btn:hover{background:#f1f5f9}
+.topbar-btn.nav-btn{padding:8px 14px;font-size:1rem}
+.topbar-btn[disabled]{opacity:.35;cursor:not-allowed}
+.slide-counter{font-weight:800;color:var(--primary-dark);font-size:.88rem;min-width:52px;text-align:center}
+.top-progress{position:fixed;top:62px;left:0;right:0;height:3px;background:#e2e8f0;z-index:60}
+.top-progress-bar{height:100%;width:0%;background:var(--primary);transition:width .25s}
+
+.deck-wrapper{position:fixed;top:65px;left:0;right:0;bottom:0;overflow-y:auto;background:var(--bg);
+  background-image:radial-gradient(circle at top left, rgba(15,118,110,.12), transparent 34rem),radial-gradient(circle at top right, rgba(180,83,9,.10), transparent 34rem);}
+.deck{max-width:1080px;margin:0 auto;padding:28px 24px 90px}
+.slide{display:none}
+.slide.active{display:block;animation:slideIn .25s ease}
+@keyframes slideIn{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:translateY(0)}}
+.slide.section{background:rgba(255,255,255,.96);border:1px solid var(--line);border-radius:var(--radius);box-shadow:0 12px 36px rgba(15,23,42,.06);padding:36px 40px;min-height:calc(100vh - 200px)}
+.slide.hero-slide{padding:0;min-height:calc(100vh - 160px)}
+.slide.hero-slide.active{display:flex}
+
+.section h2{font-size:2rem;line-height:1.15;margin:0 0 12px;letter-spacing:-.03em;color:#0f172a}
+.section h3{font-size:1.35rem;margin:28px 0 10px;color:#0f172a}
+
+/* Overview menu */
+.menu-overlay{position:fixed;inset:0;background:rgba(15,23,42,.55);z-index:80;display:none;align-items:flex-start;justify-content:center;padding:80px 20px 20px}
+.menu-overlay.open{display:flex}
+.menu-panel{background:#fff;border-radius:20px;max-width:640px;width:100%;max-height:80vh;overflow-y:auto;padding:22px;box-shadow:0 30px 60px rgba(0,0,0,.3)}
+.menu-panel h3{margin:0 0 14px;font-size:1rem;text-transform:uppercase;letter-spacing:.08em;color:var(--muted)}
+.menu-item{display:flex;justify-content:space-between;width:100%;text-align:left;padding:12px 14px;border-radius:12px;border:1px solid transparent;background:#f8fafc;color:#334155;font-weight:650;margin-bottom:6px;cursor:pointer;font-size:.95rem}
+.menu-item:hover{background:var(--primary-soft);color:var(--primary-dark)}
+.menu-item.active{background:var(--primary);color:#fff}
+
+.lead{font-size:1.12rem;color:#334155;margin-top:0}.muted{color:var(--muted)}
+.grid{display:grid;gap:16px}.grid-2{grid-template-columns:repeat(2,minmax(0,1fr))}.grid-3{grid-template-columns:repeat(3,minmax(0,1fr))}.grid-4{grid-template-columns:repeat(4,minmax(0,1fr))}
+.card{background:#fff;border:1px solid var(--line);border-radius:18px;padding:18px;box-shadow:0 6px 18px rgba(15,23,42,.04)}
+.card h4{margin:0 0 8px;font-size:1rem;color:#0f172a}.card p{margin:0;color:#475569}.card.big{padding:24px}
+.callout{border-radius:18px;padding:18px;border:1px solid;display:flex;gap:14px;align-items:flex-start;margin:18px 0}.callout .icon{font-size:1.4rem;line-height:1}.callout.info{background:var(--blue-soft);border-color:#bfdbfe}.callout.good{background:var(--good-soft);border-color:#bbf7d0}.callout.warn{background:var(--accent-soft);border-color:#fed7aa}.callout.danger{background:var(--danger-soft);border-color:#fecaca}.callout.purple{background:var(--purple-soft);border-color:#ddd6fe}
+.formula{background:#0f172a;color:#e2e8f0;border-radius:16px;padding:18px;font-size:1.05rem;overflow:auto;margin:16px 0;font-family:"SFMono-Regular",Consolas,monospace}.formula strong{color:#99f6e4}.pill{display:inline-block;padding:4px 10px;border-radius:999px;background:var(--primary-soft);color:var(--primary-dark);font-weight:750;font-size:.82rem}
+table{width:100%;border-collapse:separate;border-spacing:0;overflow:hidden;border:1px solid var(--line);border-radius:16px;background:#fff;margin:14px 0}th,td{padding:12px 14px;text-align:left;border-bottom:1px solid var(--line);vertical-align:top}th{background:#f1f5f9;color:#0f172a;font-size:.9rem;text-transform:uppercase;letter-spacing:.04em}tr:last-child td{border-bottom:0}.center{text-align:center}.right{text-align:right}.nowrap{white-space:nowrap}
+tr.clickable{cursor:pointer;transition:background .12s}tr.clickable:hover{background:#f1f5f9}tr.clickable.selected{background:var(--primary-soft)}
+.controls{display:grid;gap:12px;margin:12px 0}.control{background:#f8fafc;border:1px solid var(--line);border-radius:14px;padding:14px}.control label{display:flex;justify-content:space-between;font-weight:700;color:#334155;margin-bottom:8px}.control input[type=range]{width:100%}.control input[type=number], .control select{width:100%;padding:10px;border:1px solid var(--line);border-radius:12px;font-size:1rem;background:#fff}.result{background:#f8fafc;border:1px solid var(--line);border-radius:16px;padding:16px;margin-top:12px}.result strong{color:#0f172a}.big-number{font-size:2.2rem;font-weight:850;letter-spacing:-.04em;color:var(--primary-dark)}
+.svgbox{width:100%;background:#fff;border:1px solid var(--line);border-radius:18px;padding:10px;overflow:hidden}.svgbox svg{width:100%;height:auto;display:block}.axis{stroke:#94a3b8;stroke-width:1}.gridline{stroke:#e2e8f0;stroke-width:1}.curve{fill:none;stroke:var(--primary);stroke-width:4}.curve2{fill:none;stroke:var(--accent);stroke-width:4}.point{fill:var(--accent);stroke:#fff;stroke-width:2}.bar{fill:var(--primary);opacity:.85}.bar2{fill:var(--accent);opacity:.85}.label{font-size:12px;fill:#475569}.label-strong{font-size:13px;fill:#0f172a;font-weight:700}
+.stepper{display:grid;gap:14px}.step{display:none}.step.active{display:block}.step-nav{display:flex;gap:10px;justify-content:space-between;margin-top:12px;align-items:center}.step-dots{display:flex;gap:6px}.step-dots span{width:8px;height:8px;border-radius:50%;background:#cbd5e1}.step-dots span.on{background:var(--primary)}.btn{border:0;border-radius:999px;padding:10px 16px;background:var(--primary);color:white;font-weight:750;cursor:pointer;box-shadow:0 4px 12px rgba(15,118,110,.18)}.btn:hover{background:var(--primary-dark)}.btn.secondary{background:#e2e8f0;color:#0f172a}.btn.secondary:hover{background:#cbd5e1}.btn.ghost{background:transparent;color:var(--primary-dark);border:1px solid var(--line);box-shadow:none}.btn.small{padding:7px 12px;font-size:.87rem}.btn[disabled]{opacity:.45;cursor:not-allowed}
+.accordion details{border:1px solid var(--line);border-radius:16px;background:#fff;margin:10px 0;overflow:hidden}.accordion summary{cursor:pointer;padding:15px 18px;font-weight:800;color:#0f172a;background:#f8fafc}.accordion .inside{padding:16px 18px}.quiz{border:1px solid var(--line);border-radius:18px;padding:18px;background:#fff;margin:16px 0}.quiz h4{margin:0 0 10px}.quiz .option{display:block;width:100%;text-align:left;border:1px solid var(--line);background:#f8fafc;border-radius:14px;padding:12px;margin:8px 0;cursor:pointer;font-weight:650;color:#334155}.quiz .option:hover{background:#eef2f7}.feedback{display:none;border-radius:14px;padding:12px;margin-top:10px}.feedback.ok{display:block;background:var(--good-soft);border:1px solid #bbf7d0;color:#14532d}.feedback.no{display:block;background:var(--danger-soft);border:1px solid #fecaca;color:#7f1d1d}
+.timeline{display:grid;gap:12px;margin:18px 0}.tl-item{display:grid;grid-template-columns:42px 1fr;gap:12px;align-items:start}.tl-num{width:42px;height:42px;border-radius:50%;background:var(--primary);color:white;display:grid;place-items:center;font-weight:850}.tl-body{background:#fff;border:1px solid var(--line);border-radius:16px;padding:15px}.tl-body h4{margin:0 0 6px}.tl-body p{margin:0;color:#475569}.mini-note{font-size:.9rem;color:#64748b}.teacher{background:#f8fafc;border-left:5px solid var(--primary);border-radius:16px;padding:16px;margin:18px 0}.teacher strong{color:var(--primary-dark)}
+.compare{display:grid;grid-template-columns:1fr 1fr;gap:14px}.compare .bad{border-color:#fecaca;background:#fff7f7}.compare .goodx{border-color:#bbf7d0;background:#f7fff9}.kbd{display:inline-block;background:#e2e8f0;border-bottom:2px solid #cbd5e1;border-radius:6px;padding:1px 6px;font-family:monospace;font-weight:700}.footer{color:#64748b;text-align:center;padding:30px}.print-tip{font-size:.88rem;color:#d1fae5;margin-top:14px}
+.tag{display:inline-block;font-size:.75rem;font-weight:800;letter-spacing:.03em;text-transform:uppercase;padding:3px 9px;border-radius:999px;background:var(--purple-soft);color:var(--purple)}
+.case-banner{background:linear-gradient(135deg,#fff7ed,#fffbeb);border:1px solid var(--accent-soft);border-radius:18px;padding:16px 18px;margin:16px 0;display:flex;gap:12px;align-items:flex-start}
+.case-banner .icon{font-size:1.3rem}
+.toggle-row{display:flex;gap:10px;margin:12px 0;flex-wrap:wrap}
+.toggle-row button{border:1px solid var(--line);background:#f8fafc;border-radius:999px;padding:8px 16px;font-weight:700;cursor:pointer;color:#334155}
+.toggle-row button.active{background:var(--primary);border-color:var(--primary);color:#fff}
+@media(max-width:980px){.grid-2,.grid-3,.grid-4,.compare{grid-template-columns:1fr}.slide.section{padding:22px}.deck{padding:18px 14px 90px}.topbar-left .slide-eyebrow{display:none}}
+@media(max-width:640px){.topbar-btn span.btn-label{display:none}}
+@media print{
+  .topbar,.top-progress,.menu-overlay{display:none}
+  body{background:#fff}
+  .deck-wrapper{position:static;overflow:visible;background:none}
+  .deck{max-width:none;padding:0}
+  .slide{display:block !important;box-shadow:none;break-inside:avoid;margin-bottom:24px}
+  .slide.section{min-height:0;border:1px solid #ddd}
+  .slide.hero-slide{min-height:0}
+  .hero{color:#111;background:#fff;border:2px solid #111}
+  .hero p,.badge{color:#111}
+  .badge{border-color:#111}
+  .btn,.control input[type=range]{display:none}
+}
+</style>
+</head>
+<body>
+<div class="topbar">
+  <div class="topbar-left">
+    <button class="topbar-btn" id="menuBtn" title="Abrir sumário">☰ <span class="btn-label">Sumário</span></button>
+    <div>
+      <div class="name">Regressão Logística Binária</div>
+      <div class="slide-eyebrow" id="slideEyebrow">Capa</div>
+    </div>
+  </div>
+  <div class="topbar-right">
+    <button class="topbar-btn nav-btn" id="prevBtn" title="Slide anterior (←)">←</button>
+    <span class="slide-counter" id="slideCounter">1 / 15</span>
+    <button class="topbar-btn nav-btn" id="nextBtn" title="Próximo slide (→)">→</button>
+  </div>
+</div>
+<div class="top-progress"><div class="top-progress-bar" id="topProgressBar"></div></div>
+
+<div class="deck-wrapper" id="deckWrapper">
+  <div class="deck" id="deck">
+
+    <section class="slide hero-slide active" id="cover" data-title="Capa">
+      <header class="hero">
+        <h1>Regressão Logística Binária</h1>
+        <p>Uma aula autossuficiente e aplicada às Ciências Sociais: como estimar, interpretar e comunicar chances de ocorrência de um evento quando o desfecho é do tipo <strong>sim/não</strong> — construída em torno de um caso real de pesquisa sobre acesso ao primeiro emprego formal.</p>
+        <div class="badges">
+          <span class="badge">🎯 Variável dependente binária</span>
+          <span class="badge">📊 Odds ratio sem mistério</span>
+          <span class="badge">🧭 Leitura guiada de output real</span>
+          <span class="badge">🧪 Quiz, simulações e caso aplicado</span>
+        </div>
+        <p class="print-tip">Use ← → (ou os botões no topo) para navegar slide a slide durante a aula. Clique em "Sumário" para pular para qualquer parte.</p>
+      </header>
+    </section>
+
+    <section class="slide section" id="s0" data-title="0. O que é uma regressão?">
+        <span class="pill tag">Antes de começar</span>
+        <h2>O que é uma regressão, afinal?</h2>
+        <p class="lead">Esta aula assume que você ainda não viu regressão linear — então vamos construir a ideia do zero, com uma ilustração que você mesmo vai manipular. Tudo o que vier depois (regressão logística, odds ratio, controle de variáveis) é uma variação sobre esta ideia central.</p>
+
+        <div class="callout info">
+          <div class="icon">🧭</div>
+          <div><strong>Ideia em uma frase:</strong> regressão é uma técnica estatística para descrever como uma variável (a que queremos explicar) varia em função de outra(s) variável(is) (as que usamos para explicar) — e, com isso, estimar/prever valores prováveis.</div>
+        </div>
+
+        <div class="grid grid-2">
+          <div class="card big">
+            <h4>Variável dependente (Y)</h4>
+            <p>É a variável que queremos <strong>explicar ou prever</strong>. No exemplo abaixo: a renda mensal de uma pessoa. Em ciências sociais, chamamos também de "desfecho" ou "resposta".</p>
+          </div>
+          <div class="card big">
+            <h4>Variável independente (X)</h4>
+            <p>É a variável que usamos para <strong>explicar</strong> a variável dependente. No exemplo abaixo: os anos de estudo da pessoa. Também chamada de "preditor".</p>
+          </div>
+        </div>
+
+        <h3>Ilustração interativa: ajustando uma reta a dados reais</h3>
+        <p class="mini-note">Os pontos abaixo representam 12 pessoas hipotéticas: no eixo X, os anos de escolaridade; no eixo Y, a renda mensal (em centenas de reais). Mova os controles de <strong>intercepto</strong> e <strong>inclinação</strong> para tentar traçar a reta que melhor passa "no meio" da nuvem de pontos — depois clique em "Ajuste automático" para ver a reta que a estatística escolheria.</p>
+
+        <div class="grid grid-2">
+          <div>
+            <div class="controls">
+              <div class="control">
+                <label for="intercept0">Intercepto (β₀) <span id="interceptLabel0">2.00</span></label>
+                <input id="intercept0" type="range" min="-10" max="20" step="0.1" value="2" />
+              </div>
+              <div class="control">
+                <label for="slope0">Inclinação (β₁) <span id="slopeLabel0">1.00</span></label>
+                <input id="slope0" type="range" min="-2" max="4" step="0.05" value="1" />
+              </div>
+              <div class="toggle-row">
+                <button class="btn small" id="autofitBtn">🎯 Ajuste automático (a reta ótima)</button>
+                <button class="btn small secondary" id="resetBtn0">Reiniciar</button>
+              </div>
+            </div>
+          </div>
+          <div>
+            <div class="svgbox" id="scatterReg"></div>
+            <div class="result" id="scatterResult"></div>
+          </div>
+        </div>
+
+        <div class="callout good">
+          <div class="icon">✅</div>
+          <div><strong>O que a regressão faz:</strong> ela encontra, entre todas as retas possíveis, aquela que minimiza a soma dos erros de previsão ao quadrado — a distância vertical entre cada ponto real e a reta (as linhas tracejadas no gráfico). É por isso que esse método é chamado de <strong>mínimos quadrados</strong>. Repare que o "erro total" exibido abaixo do gráfico fica no seu menor valor possível exatamente quando você clica em "Ajuste automático".</div>
+        </div>
+
+        <h3>Como ler os coeficientes de uma reta de regressão</h3>
+        <table>
+          <thead><tr><th>Coeficiente</th><th>O que significa?</th><th>No nosso exemplo</th></tr></thead>
+          <tbody>
+            <tr><td><strong>Intercepto (β₀)</strong></td><td>É o valor previsto de Y quando X = 0.</td><td>Renda prevista para alguém com 0 anos de estudo.</td></tr>
+            <tr><td><strong>Inclinação / coeficiente (β₁)</strong></td><td>É o quanto Y muda, em média, para cada aumento de 1 unidade em X.</td><td>Quanto a renda aumenta, em média, a cada ano adicional de estudo.</td></tr>
+          </tbody>
+        </table>
+
+        <h3>Como transformar um coeficiente em uma frase (o primeiro passo de toda a aula)</h3>
+        <p class="lead">Saber calcular um coeficiente não adianta nada se você não sabe <strong>traduzi-lo em uma frase</strong>. Esse é o "músculo" que vamos treinar a aula inteira — aqui, na versão mais simples possível.</p>
+
+        <div class="grid grid-2">
+          <div class="card big">
+            <h4>Frase-modelo (memorize esta estrutura)</h4>
+            <div class="formula">"Para cada aumento de uma unidade em <strong>[X]</strong>, espera-se um aumento (ou redução) médio de <strong>[β₁]</strong> unidade(s) em <strong>[Y]</strong>, mantidas as demais condições."</div>
+            <p class="mini-note">Essa é a frase-esqueleto que você vai reaproveitar — com pequenas adaptações — para regressão linear, logística e para qualquer coeficiente que aparecer no restante da aula.</p>
+          </div>
+          <div class="card big">
+            <h4>Aplicando ao nosso exemplo (com o ajuste ótimo: β₀ ≈ 0,11 e β₁ ≈ 1,51)</h4>
+            <p><strong>Sobre a inclinação (β₁):</strong> "Para cada ano adicional de estudo, espera-se um aumento médio de 1,51 centena de reais (≈ R$ 151) na renda mensal."</p>
+            <p><strong>Sobre o intercepto (β₀):</strong> "Uma pessoa com 0 ano de estudo teria renda mensal prevista de aproximadamente 0,11 centena de reais (≈ R$ 11)."</p>
+          </div>
+        </div>
+
+        <div class="compare">
+          <div class="card bad">
+            <h4>❌ Frase fraca / incorreta</h4>
+            <p>"A escolaridade dá mais dinheiro." <span class="mini-note">(vago, não diz a magnitude, soa causal demais para um dado observacional)</span></p>
+          </div>
+          <div class="card goodx">
+            <h4>✅ Frase precisa</h4>
+            <p>"Neste conjunto de dados, cada ano adicional de estudo esteve associado, em média, a um acréscimo de R$ 151 na renda mensal."</p>
+          </div>
+        </div>
+
+        <div class="callout warn">
+          <div class="icon">⚠️</div>
+          <div><strong>Cuidado com o intercepto:</strong> "0 anos de estudo" pode estar fora do intervalo de dados que você realmente observou (isso se chama <em>extrapolação</em>). Nesses casos, é mais honesto dizer que o intercepto "tem função matemática de ancorar a reta" do que atribuir um sentido social forte a ele.</div>
+        </div>
+
+        <h3>Agora treine você: gerador de frase ao vivo</h3>
+        <p class="mini-note">Volte aos controles de intercepto e inclinação lá em cima e observe: a frase abaixo se atualiza sozinha com os valores que você escolher. Tente descrever em voz alta o que a frase está dizendo, antes de olhar para os números.</p>
+        <div class="result" id="scatterPhrase"></div>
+
+        <h3>De uma variável para várias: a ideia de "controlar" outras variáveis</h3>
+        <p>Até aqui usamos só uma variável independente (regressão <strong>simples</strong>). Mas a maioria das perguntas sociológicas interessantes envolve várias causas ao mesmo tempo — isso é a regressão <strong>múltipla</strong>: em vez de uma reta em um gráfico 2D, imagine várias variáveis entrando juntas na mesma equação.</p>
+        <div class="formula">Y = β₀ + β₁X₁ + β₂X₂ + β₃X₃ + ... + erro</div>
+        <div class="teacher"><strong>Analogia para "controlar por outra variável":</strong> imagine comparar o tempo de duas pessoas correndo 5 km. Uma tem 20 anos, outra tem 50. Se você quer isolar o efeito do <em>treino</em> no desempenho, precisa comparar pessoas de idade parecida entre si — do contrário, a idade "contamina" a comparação. É exatamente isso que a regressão múltipla faz matematicamente: estima o efeito de cada variável <strong>mantendo as demais constantes</strong> (a expressão "controlando por..." que você vai ver o tempo todo nesta aula).</div>
+
+        <div class="callout warn">
+          <div class="icon">⚠️</div>
+          <div><strong>Por que isso importa para a regressão logística?</strong> Ela usa exatamente essa mesma lógica de "várias variáveis explicando um desfecho, controladas entre si" — a única mudança é que, em vez de prever um número contínuo (como renda), ela prevê a <strong>chance de um evento binário</strong> acontecer. É esse ajuste que veremos a partir da próxima seção.</div>
+        </div>
+      </section>
+
+      <section class="slide section" id="s1" data-title="1. Pergunta sociológica">
+        <span class="pill">1. A pergunta vem antes da técnica</span>
+        <h2>Que tipo de pergunta a regressão logística responde?</h2>
+        <p class="lead">A regressão logística binária é usada quando queremos explicar ou prever a ocorrência de um evento com duas possibilidades: <strong>sim/não</strong>, <strong>ocorreu/não ocorreu</strong>, <strong>pertence/não pertence</strong>, <strong>teve acesso/não teve acesso</strong>. Formalmente: qual é a probabilidade de um caso cair em uma das duas categorias da variável dependente, dados os preditores incluídos no modelo?</p>
+
+        <div class="grid grid-2">
+          <div class="card big">
+            <h4>Exemplo sociológico que vamos usar na aula toda</h4>
+            <p><strong>Desfecho:</strong> a pessoa está acessando o primeiro emprego formal com carteira assinada?</p>
+            <p class="mini-note">Categorias: 1 = Sim; 0 = Não. Base real de mais de 41.000 colaboradores de uma empresa com atuação em todo o Brasil.</p>
+          </div>
+          <div class="card big">
+            <h4>O que queremos estimar?</h4>
+            <p>Como renda, idade, gênero, escolaridade da mãe, escola pública, ação afirmativa, filhos e região se associam às <strong>chances</strong> desse desfecho ocorrer, mantendo as demais variáveis constantes.</p>
+          </div>
+        </div>
+
+        <div class="callout info">
+          <div class="icon">🧠</div>
+          <div><strong>Ideia-chave:</strong> a técnica não começa pela fórmula. Começa por uma pergunta social: <em>quais características aumentam ou reduzem a chance de um evento acontecer?</em></div>
+        </div>
+
+        <h3>Tradução para outras pesquisas sociais</h3>
+        <table>
+          <thead><tr><th>Área de pesquisa</th><th>Variável dependente binária</th><th>Pergunta possível</th></tr></thead>
+          <tbody>
+            <tr><td>Educação</td><td>Ingressou no ensino superior?</td><td>Origem social e raça/cor alteram as chances de ingresso?</td></tr>
+            <tr><td>Trabalho</td><td>Tem emprego formal?</td><td>Gênero, escolaridade e região importam?</td></tr>
+            <tr><td>Políticas públicas</td><td>Recebe benefício social?</td><td>Quais perfis estão mais associados ao acesso?</td></tr>
+            <tr><td>Estratificação</td><td>Pai/mãe tem ensino superior?</td><td>Há reprodução intergeracional de vantagens?</td></tr>
+          </tbody>
+        </table>
+      </section>
+
+      <section class="slide section" id="s2" data-title="2. Por que não regressão linear?">
+        <span class="pill">2. Intuição estatística</span>
+        <h2>Por que não usar regressão linear?</h2>
+        <p class="lead">Na seção anterior, ajustamos uma reta a uma variável dependente <strong>contínua</strong> (renda). Agora imagine tentar fazer a mesma coisa com uma variável dependente que só pode valer 0 ou 1 (por exemplo, "tem emprego formal? sim/não"). A reta de mínimos quadrados continua sendo uma reta — ela não sabe que deveria "parar" em 0 e em 1 — e por isso pode gerar previsões impossíveis, como probabilidades de -18% ou de 127%. Além disso, uma variável dependente binária viola pressupostos do modelo linear, como homocedasticidade e normalidade dos resíduos.</p>
+        <div class="grid grid-2">
+          <div>
+            <div class="svgbox" id="linearVsLogit"></div>
+          </div>
+          <div>
+            <div class="callout warn">
+              <div class="icon">⚠️</div>
+              <div><strong>Problema:</strong> se o resultado é "sim/não", não faz sentido prever 1,27 ou -0,18 como probabilidade. Probabilidades precisam ficar entre 0 e 1.</div>
+            </div>
+            <div class="callout good">
+              <div class="icon">✅</div>
+              <div><strong>Solução:</strong> a regressão logística transforma a relação em uma curva em S (função logística), que sempre fica entre 0% e 100%. Tecnicamente, ela é um caso particular de <strong>modelo linear generalizado</strong>.</div>
+            </div>
+          </div>
+        </div>
+        <div class="teacher"><strong>Fala sugerida:</strong> "A regressão logística é uma técnica para quando a pergunta não é 'quanto?', mas 'qual a chance de acontecer?'."</div>
+      </section>
+
+      <section class="slide section" id="s3" data-title="3. Probabilidade e odds">
+        <span class="pill">3. Conceitos fundamentais</span>
+        <h2>Probabilidade, chance e odds: três nomes, duas ideias</h2>
+        <p class="lead">Antes de interpretar regressão logística, precisamos separar duas coisas que no cotidiano parecem iguais: <strong>probabilidade</strong> e <strong>chance estatística</strong>, também chamada de <em>odds</em>.</p>
+
+        <div class="grid grid-2">
+          <div class="card big">
+            <h4>Probabilidade</h4>
+            <div class="formula">probabilidade = eventos favoráveis / total de casos</div>
+            <p>Se 75 de 100 pessoas tiveram primeiro emprego formal, a probabilidade é 75/100 = 0,75 = 75%.</p>
+          </div>
+          <div class="card big">
+            <h4>Odds ou chance estatística</h4>
+            <div class="formula">odds = probabilidade de ocorrer / probabilidade de não ocorrer</div>
+            <p>Se p = 0,75, então odds = 0,75 / 0,25 = 3. Há 3 chances de ocorrer para 1 de não ocorrer.</p>
+          </div>
+        </div>
+
+        <h3>Calculadora interativa: probabilidade → odds</h3>
+        <div class="grid grid-2">
+          <div class="control">
+            <label for="probSlider">Probabilidade do evento <span id="probLabel">75%</span></label>
+            <input id="probSlider" type="range" min="1" max="99" value="75" />
+            <p class="mini-note">Mova o controle e observe como a odds cresce rapidamente quando a probabilidade se aproxima de 100%. Isso mostra por que odds e probabilidade não são a mesma coisa: odds não têm teto em 1.</p>
+          </div>
+          <div class="result" id="probOddsResult"></div>
+        </div>
+
+        <div class="callout purple">
+          <div class="icon">🔁</div>
+          <div><strong>A regressão logística trabalha nos bastidores com o logaritmo das odds (o "logit").</strong> Mas, na apresentação dos resultados, geralmente interpretamos o <strong>Exp(B)</strong>, que é o famoso <strong>odds ratio</strong> (razão de chances).</div>
+        </div>
+      </section>
+
+      <section class="slide section" id="s4" data-title="4. Odds ratio">
+        <span class="pill">4. Razão de chances</span>
+        <h2>Odds ratio: comparando grupos</h2>
+        <p class="lead">O odds ratio (razão de chances, RC) compara a chance de um evento ocorrer em um grupo com a chance de ocorrer em outro grupo. Ele responde: <strong>quantas vezes a chance de um grupo é maior ou menor que a chance do grupo de referência?</strong></p>
+
+        <h3>Exemplo clássico em tabela 2×2</h3>
+        <p class="mini-note">Convenção de leitura: a codificação deve ficar crescente na linha (referência primeiro) e o evento de interesse deve ocupar a primeira coluna, para que o cálculo compare sempre "expostos com evento" contra "não expostos com evento".</p>
+        <div class="grid grid-2">
+          <div class="card">
+            <h4>Monte a tabela (exposição × doença)</h4>
+            <div class="grid grid-2">
+              <div class="control"><label>Expostos com evento</label><input type="number" id="a" value="70" min="0"></div>
+              <div class="control"><label>Expostos sem evento</label><input type="number" id="b" value="30" min="0"></div>
+              <div class="control"><label>Não expostos com evento</label><input type="number" id="c" value="20" min="0"></div>
+              <div class="control"><label>Não expostos sem evento</label><input type="number" id="d" value="80" min="0"></div>
+            </div>
+          </div>
+          <div class="result" id="orResult"></div>
+        </div>
+
+        <div class="callout warn">
+          <div class="icon">⚠️</div>
+          <div><strong>Cuidado didático importante:</strong> RC &gt; 1 não significa sempre "fator de risco". Significa aumento das chances do evento. Só chame de risco quando o evento for substantivamente negativo, como adoecimento, evasão ou desemprego — em outros casos (como "acessar o primeiro emprego formal"), RC &gt; 1 é uma <em>chance maior de um resultado desejável</em>, não um risco.</div>
+        </div>
+
+        <table>
+          <thead><tr><th>Valor da RC</th><th>Interpretação correta</th><th>Exemplo de linguagem</th></tr></thead>
+          <tbody>
+            <tr><td class="nowrap"><strong>RC = 1</strong></td><td>As chances são iguais entre os grupos.</td><td>Não há diferença nas chances do evento.</td></tr>
+            <tr><td class="nowrap"><strong>RC &gt; 1</strong></td><td>O grupo analisado tem maiores chances que a referência.</td><td>RC = 2,5: as chances são 2,5 vezes maiores.</td></tr>
+            <tr><td class="nowrap"><strong>RC &lt; 1</strong></td><td>O grupo analisado tem menores chances que a referência.</td><td>RC = 0,40: as chances são 60% menores.</td></tr>
+          </tbody>
+        </table>
+      </section>
+
+      <section class="slide section" id="s5" data-title="5. Categoria de referência">
+        <span class="pill">5. Onde a maioria se confunde</span>
+        <h2>Categoria de referência: o eixo de toda interpretação</h2>
+        <p class="lead">Toda razão de chances é sempre relativa a uma categoria "base" — a <strong>categoria de referência</strong>. Trocar a referência não muda o fenômeno, mas muda o número e a frase de interpretação. Este é o ponto onde mais se cometem erros de leitura.</p>
+
+        <div class="case-banner">
+          <div class="icon">🧩</div>
+          <div><strong>Exemplo do próprio banco de dados da aula:</strong> a variável Raça foi apresentada como "Branco" vs. "Não branco". Se a referência é <strong>"não branco"</strong>, a RC = 5,288 informada no modelo se refere às chances do grupo <strong>"branco"</strong> em relação a "não branco" — não o contrário.</div>
+        </div>
+
+        <h3>Veja como a interpretação muda ao trocar a referência</h3>
+        <div class="toggle-row" id="refToggle">
+          <button class="active" data-ref="nao-branco">Referência: "não branco"</button>
+          <button data-ref="branco">Referência: "branco"</button>
+        </div>
+        <div class="result" id="refResult"></div>
+
+        <div class="callout danger">
+          <div class="icon">🚫</div>
+          <div><strong>Erro comum:</strong> ler uma RC sem checar antes qual categoria é a referência no output. O mesmo par de grupos pode gerar RC = 5,288 ou RC ≈ 0,189 (o inverso, 1/5,288) dependendo de qual categoria foi fixada como base — a informação sociológica é a mesma, mas a frase de interpretação precisa mudar junto.</div>
+        </div>
+      </section>
+
+      <section class="slide section" id="s6" data-title="6. O modelo logístico">
+        <span class="pill">6. O modelo</span>
+        <h2>O que a regressão logística faz?</h2>
+        <p class="lead">Ela estima a associação entre vários preditores e as chances de um evento ocorrer, controlando os demais preditores incluídos no modelo.</p>
+        <div class="formula"><strong>logit(p)</strong> = ln[p/(1-p)] = β₀ + β₁X₁ + β₂X₂ + ... + βₖXₖ</div>
+        <p>Repare que o lado direito da equação é <strong>exatamente a mesma estrutura</strong> da reta de regressão que você ajustou na Seção 0 (β₀ + β₁X₁ + β₂X₂ + ...). A única diferença é o que fica do lado esquerdo: em vez de estimar diretamente Y (como a renda), o modelo estima o <strong>logit</strong> — o logaritmo das odds de o evento ocorrer. Depois, essa combinação linear "escondida" é transformada de volta em probabilidade (entre 0 e 1) pela função logística, exibida como a curva em S no simulador abaixo.</p>
+
+        <h3>Simulador: como um preditor muda a probabilidade estimada?</h3>
+        <div class="grid grid-2">
+          <div>
+            <div class="controls">
+              <div class="control">
+                <label for="intercept">Intercepto β₀ <span id="interceptLabel">-1.50</span></label>
+                <input id="intercept" type="range" min="-5" max="5" step="0.1" value="-1.5" />
+              </div>
+              <div class="control">
+                <label for="slope">Coeficiente β₁ <span id="slopeLabel">1.20</span></label>
+                <input id="slope" type="range" min="-4" max="4" step="0.1" value="1.2" />
+              </div>
+              <div class="control">
+                <label for="xvalue">Valor de X <span id="xvalueLabel">1.00</span></label>
+                <input id="xvalue" type="range" min="-3" max="3" step="0.1" value="1" />
+              </div>
+            </div>
+          </div>
+          <div>
+            <div class="svgbox" id="logitCurve"></div>
+            <div class="result" id="logitResult"></div>
+          </div>
+        </div>
+
+        <div class="callout info">
+          <div class="icon">🗣️</div>
+          <div><strong>Tradução oral:</strong> "O modelo transforma uma combinação de características sociais em uma probabilidade estimada de o evento ocorrer."</div>
+        </div>
+      </section>
+
+      <section class="slide section" id="s7" data-title="7. Estudo de caso real">
+        <span class="pill tag">Estudo de caso real</span>
+        <h2>Exemplo aplicado: primeiro emprego formal na Empresa X</h2>
+        <p class="lead">Vamos usar um caso de pesquisa real para amarrar todos os conceitos: uma base com mais de 41.000 colaboradores de uma empresa com atuação em várias regiões do Brasil, incluindo uma leitura específica das unidades do Nordeste. A variável dependente é: <strong>trata-se do primeiro emprego com carteira assinada?</strong></p>
+
+        <div class="timeline">
+          <div class="tl-item"><div class="tl-num">1</div><div class="tl-body"><h4>Defina o evento de interesse</h4><p>1 = Sim, é o primeiro emprego formal. 0 = Não, já teve emprego formal antes.</p></div></div>
+          <div class="tl-item"><div class="tl-num">2</div><div class="tl-body"><h4>Escolha preditores teoricamente relevantes</h4><p>Vínculo com unidade no Nordeste, renda familiar até 2 salários mínimos, faixa etária até 24 anos, ensino médio em escola pública, escolaridade da mãe até médio incompleto, curso superior em universidade pública, beneficiário de ação afirmativa, gênero feminino, família recebe benefício social, tem filhos.</p></div></div>
+          <div class="tl-item"><div class="tl-num">3</div><div class="tl-body"><h4>Estime o modelo</h4><p>O modelo calcula como cada variável se associa ao desfecho, mantendo as demais constantes — 10 preditores no total.</p></div></div>
+          <div class="tl-item"><div class="tl-num">4</div><div class="tl-body"><h4>Interprete sociologicamente</h4><p>O foco não é só dizer "significativo". É explicar o que isso sugere sobre desigualdades, trajetórias e oportunidades de entrada no mercado formal.</p></div></div>
+        </div>
+
+        <h3>Preditores e perguntas sociológicas</h3>
+        <table>
+          <thead><tr><th>Variável independente</th><th>O que ela representa sociologicamente?</th><th>Hipótese possível</th></tr></thead>
+          <tbody>
+            <tr><td>Renda familiar até 2 salários mínimos</td><td>Origem de classe</td><td>Pessoas de menor renda podem ingressar mais cedo no emprego formal.</td></tr>
+            <tr><td>Até 24 anos</td><td>Momento da trajetória de vida</td><td>Jovens tendem a concentrar primeiros vínculos formais.</td></tr>
+            <tr><td>Escola pública</td><td>Trajetória educacional e origem social</td><td>Pode estar associada a inserções ocupacionais distintas.</td></tr>
+            <tr><td>Escolaridade da mãe até médio incompleto</td><td>Capital cultural familiar</td><td>Menor escolaridade materna pode indicar menor herança educacional.</td></tr>
+            <tr><td>Ação afirmativa no ensino superior</td><td>Política pública e trajetória de acesso</td><td>Pode marcar trajetórias de democratização do ensino superior.</td></tr>
+            <tr><td>Gênero feminino</td><td>Desigualdade de gênero</td><td>As chances podem variar por divisão sexual do trabalho.</td></tr>
+          </tbody>
+        </table>
+
+        <div class="callout good">
+          <div class="icon">📌</div>
+          <div><strong>Resultado global do modelo (número real deste caso):</strong> teste omnibus χ²(10) = 5058; p &lt; 0,001. Nagelkerke R² = 0,318. Acurácia de 73,1%, especificidade de 83,6% e sensibilidade de 53,3%. Vamos usar exatamente esses números nas próximas duas seções para treinar a leitura de output.</div>
+        </div>
+      </section>
+
+      <section class="slide section" id="s8" data-title="8. Como ler o output">
+        <span class="pill">8. Leitura do output</span>
+        <h2>Como ler uma saída de regressão logística</h2>
+        <p class="lead">O segredo é não tentar ler tudo de uma vez. Leia em camadas — vamos aplicar essas camadas ao próprio caso da Empresa X.</p>
+
+        <div class="stepper" id="outputStepper">
+          <div class="step active">
+            <h3>Camada 1: o modelo melhora em relação ao modelo nulo?</h3>
+            <div class="card"><h4>Teste Omnibus / teste do modelo global</h4><p>Compara o modelo sem preditores (modelo nulo, que classifica todo mundo na categoria mais frequente) com o modelo que inclui as 10 variáveis independentes.</p></div>
+            <div class="result"><strong>Neste caso:</strong> χ²(10) = 5058; p &lt; 0,001 → o conjunto de preditores melhora significativamente o ajuste em relação ao modelo nulo.</div>
+            <div class="callout warn"><div class="icon">⚠️</div><div>Isso não significa automaticamente que o modelo é "excelente". Significa que ele é estatisticamente melhor do que não usar preditor nenhum — com uma amostra de mais de 41.000 casos, até efeitos pequenos tendem a ser significativos.</div></div>
+          </div>
+          <div class="step">
+            <h3>Camada 2: qual é o tamanho aproximado da melhoria?</h3>
+            <div class="card"><h4>Pseudo-R² de Nagelkerke</h4><p>Indica uma medida aproximada de melhora do modelo, mas <strong>não deve ser interpretado como percentual literal da variância explicada</strong>, como na regressão linear.</p></div>
+            <div class="result"><strong>Neste caso:</strong> Nagelkerke R² = 0,318.</div>
+            <div class="compare">
+              <div class="card bad"><h4>Evite dizer</h4><p>"O modelo explica 31,8% da variação da variável dependente."</p></div>
+              <div class="card goodx"><h4>Prefira dizer</h4><p>"O pseudo-R² de Nagelkerke sugere melhora substantiva do modelo em relação ao modelo nulo, com valor de 0,318."</p></div>
+            </div>
+          </div>
+          <div class="step">
+            <h3>Camada 3: quais variáveis importam?</h3>
+            <p class="mini-note">Clique em uma linha da tabela abaixo para ver a interpretação sociológica completa daquele coeficiente.</p>
+            <table id="coefTable">
+              <thead><tr><th>Variável</th><th>B</th><th>Wald (Z)</th><th>p</th><th>Exp(B) / RC</th></tr></thead>
+              <tbody></tbody>
+            </table>
+            <div class="result" id="coefResult">Selecione uma variável na tabela acima.</div>
+          </div>
+          <div class="step">
+            <h3>Camada 4: como transformar RC em frase clara?</h3>
+            <div class="grid grid-3">
+              <div class="card"><h4>RC = 2,00</h4><p>O grupo tem 2 vezes as chances do evento em relação à referência.</p></div>
+              <div class="card"><h4>RC = 0,50</h4><p>O grupo tem metade das chances, ou 50% menos chances.</p></div>
+              <div class="card"><h4>RC = 1,00</h4><p>As chances são equivalentes às do grupo de referência.</p></div>
+            </div>
+          </div>
+          <div class="step-nav">
+            <button class="btn secondary" id="prevStep">Voltar</button>
+            <div class="step-dots" id="stepDots"></div>
+            <button class="btn" id="nextStep">Avançar</button>
+          </div>
+        </div>
+      </section>
+
+      <section class="slide section" id="s9" data-title="9. Qualidade do modelo">
+        <span class="pill">9. Avaliando o desempenho</span>
+        <h2>Acurácia, sensibilidade e especificidade</h2>
+        <p class="lead">Depois de estimar o modelo, precisamos perguntar: ele classifica bem os casos? Cuidado: a acurácia pode enganar quando as categorias são muito desequilibradas. Os controles abaixo já começam nos valores reais do caso da Empresa X — mexa neles para ver como as métricas reagem a cenários diferentes.</p>
+
+        <div class="grid grid-2">
+          <div>
+            <div class="controls">
+              <div class="control"><label>Total de casos com evento real <span id="posLabel">200</span></label><input id="posRange" type="range" min="50" max="950" step="10" value="200"></div>
+              <div class="control"><label>Sensibilidade <span id="sensLabel">53%</span></label><input id="sensRange" type="range" min="0" max="100" step="1" value="53"></div>
+              <div class="control"><label>Especificidade <span id="specLabel">84%</span></label><input id="specRange" type="range" min="0" max="100" step="1" value="84"></div>
+            </div>
+          </div>
+          <div>
+            <div class="result" id="classResult"></div>
+          </div>
+        </div>
+
+        <table id="confTable">
+          <thead><tr><th></th><th>Predito: Sim</th><th>Predito: Não</th><th>Total real</th></tr></thead>
+          <tbody></tbody>
+        </table>
+
+        <div class="callout info">
+          <div class="icon">📌</div>
+          <div><strong>Sensibilidade</strong> é a capacidade de identificar corretamente os casos positivos. <strong>Especificidade</strong> é a capacidade de identificar corretamente os casos negativos. <strong>Acurácia</strong> é o total de acertos sobre o total de casos.</div>
+        </div>
+
+        <div class="callout warn">
+          <div class="icon">⚠️</div>
+          <div><strong>No caso real da Empresa X</strong>, acurácia de 73,1% parece alta, mas a sensibilidade é de apenas 53,3% — ou seja, o modelo erra quase metade dos casos que de fato são "primeiro emprego formal". Isso acontece porque a especificidade (83,6%) é bem mais alta: o modelo é bom em reconhecer quem <em>não</em> está no primeiro emprego, mas mediano em reconhecer quem está. Um relatório que só reportasse a acurácia estaria escondendo essa fragilidade.</div>
+        </div>
+
+        <h3>Quando priorizar cada métrica?</h3>
+        <table>
+          <thead><tr><th>Situação</th><th>Priorizar</th><th>Razão</th></tr></thead>
+          <tbody>
+            <tr><td>Triagem inicial de casos vulneráveis</td><td>Sensibilidade</td><td>É melhor captar mais casos possíveis, mesmo com falsos positivos.</td></tr>
+            <tr><td>Decisão com alto custo de erro contra inocentes</td><td>Especificidade</td><td>É importante evitar classificar erroneamente quem não possui o desfecho.</td></tr>
+            <tr><td>Classes muito desequilibradas</td><td>Sensibilidade + especificidade</td><td>Acurácia sozinha pode parecer boa mesmo com modelo fraco em uma das classes.</td></tr>
+          </tbody>
+        </table>
+      </section>
+
+      <section class="slide section" id="s10" data-title="10. Pressupostos e cuidados">
+        <span class="pill">10. Pressupostos e cuidados</span>
+        <h2>O que verificar antes de confiar no modelo?</h2>
+        <p class="lead">Regressão logística não exige normalidade dos resíduos como a regressão linear, mas tem pressupostos e cuidados próprios.</p>
+        <table>
+          <thead><tr><th>Cuidados</th><th>O que significa?</th><th>Sinal de alerta</th></tr></thead>
+          <tbody>
+            <tr><td>Desfecho binário</td><td>A variável dependente deve ter duas categorias.</td><td>Categorias confusas ou mal codificadas.</td></tr>
+            <tr><td>Independência das observações</td><td>Um caso não deve depender diretamente de outro.</td><td>Dados agrupados sem correção, como alunos dentro de escolas.</td></tr>
+            <tr><td>Multicolinearidade</td><td>Preditores não devem ser quase a mesma variável.</td><td>VIF alto; tolerância baixa.</td></tr>
+            <tr><td>Tamanho amostral</td><td>Não basta N total; importa quantidade de eventos por preditor.</td><td>Poucos eventos e muitos preditores. Com N &gt; 41.000 e 10 preditores, o caso da Empresa X está confortável neste critério.</td></tr>
+            <tr><td>Separação perfeita</td><td>Uma variável não deve prever perfeitamente o desfecho.</td><td>Coeficientes enormes, erros-padrão muito altos.</td></tr>
+            <tr><td>Linearidade no logit</td><td>Para preditores contínuos, a relação deve ser linear com o logit.</td><td>Relações curvas não modeladas.</td></tr>
+            <tr><td>Casos influentes</td><td>Alguns casos podem afetar muito os coeficientes.</td><td>Resíduos ou alavancagem muito altos.</td></tr>
+          </tbody>
+        </table>
+
+        <div class="callout danger">
+          <div class="icon">🚫</div>
+          <div><strong>Erro comum:</strong> dizer que um modelo logístico "prova causalidade". Em geral, ele estima associações condicionais. Causalidade depende de teoria, temporalidade, desenho de pesquisa e qualidade dos dados.</div>
+        </div>
+      </section>
+
+      <section class="slide section" id="s11" data-title="11. Como escrever resultados">
+        <span class="pill">11. Comunicação dos resultados</span>
+        <h2>Como escrever uma interpretação correta?</h2>
+        <p class="lead">A interpretação precisa combinar estatística e sociologia: significância, direção, magnitude e sentido substantivo.</p>
+        <div class="compare">
+          <div class="card bad">
+            <h4>Versão problemática</h4>
+            <p>"O modelo explica 31,8% da variável dependente. A variável raça é fator de risco, pois Exp(B) é maior que 1."</p>
+          </div>
+          <div class="card goodx">
+            <h4>Versão recomendada</h4>
+            <p>"O modelo apresentou melhora estatisticamente significativa em relação ao modelo nulo [χ²(10) = 5058; p &lt; 0,001]. A variável raça esteve associada a maiores chances de ocorrência do desfecho, em comparação à categoria de referência, controladas as demais variáveis."</p>
+          </div>
+        </div>
+
+        <h3>Modelo de parágrafo (com os números reais do caso)</h3>
+        <div class="card big">
+          <p>O modelo de regressão logística binária foi estimado para analisar fatores associados à probabilidade de acesso ao <strong>primeiro emprego com carteira assinada</strong>. O teste global indicou que o conjunto de preditores melhora significativamente o ajuste em relação ao modelo nulo [χ²(10) = 5058; p &lt; 0,001], com um Nagelkerke R² de 0,318. A variável <strong>raça</strong> apresentou associação estatisticamente significativa com o desfecho (p &lt; 0,05). Considerando a razão de chances, indivíduos da categoria <strong>"branco"</strong> apresentaram <strong>5,288 vezes mais chances</strong> de ocorrência do desfecho analisado quando comparados à categoria de referência <strong>"não branco"</strong>, mantidas constantes as demais variáveis do modelo. O modelo classificou corretamente 73,1% dos casos (sensibilidade de 53,3%; especificidade de 83,6%). Esse resultado sugere desigualdades associadas à origem racial no acesso a determinadas trajetórias ocupacionais, embora não deva ser tratado, isoladamente, como evidência causal.</p>
+        </div>
+
+        <h3>Conversor de RC em frase</h3>
+        <div class="grid grid-2">
+          <div class="control"><label>Informe uma razão de chances</label><input type="number" id="orPhrase" value="5.288" step="0.001" min="0.001"></div>
+          <div class="result" id="orPhraseResult"></div>
+        </div>
+
+        <h3>Banco de frases prontas — para cada situação que você vai encontrar</h3>
+        <p class="lead">Guarde esta seção como referência rápida. Cada card mostra a frase certa para uma situação típica de output — e, quando existe um erro comum, ele aparece riscado ao lado.</p>
+
+        <div class="accordion">
+          <details open>
+            <summary>① Teste global do modelo (o modelo "presta" em relação ao modelo nulo?)</summary>
+            <div class="inside">
+              <p><strong>Use quando:</strong> p do teste omnibus/qui-quadrado global for menor que 0,05.</p>
+              <div class="compare">
+                <div class="card bad"><h4>❌ Evite</h4><p>"O modelo é muito bom."</p></div>
+                <div class="card goodx"><h4>✅ Diga</h4><p>"O conjunto de preditores melhorou significativamente o ajuste do modelo em relação ao modelo nulo [χ²(10) = 5058; p &lt; 0,001]."</p></div>
+              </div>
+            </div>
+          </details>
+
+          <details>
+            <summary>② Variável significativa com RC &gt; 1 ("fator de risco" só quando o desfecho for negativo)</summary>
+            <div class="inside">
+              <p><strong>Use quando:</strong> p &lt; 0,05 e Exp(B)/RC maior que 1.</p>
+              <div class="compare">
+                <div class="card bad"><h4>❌ Evite (se o desfecho não for negativo)</h4><p>"Ser branco é um fator de risco para ter pai com ensino superior."</p></div>
+                <div class="card goodx"><h4>✅ Diga</h4><p>"A categoria 'branco' apresentou 5,288 vezes mais chances de o desfecho ocorrer em comparação à categoria de referência 'não branco', controladas as demais variáveis (p &lt; 0,05)."</p></div>
+              </div>
+              <p class="mini-note">Só use a palavra "risco" quando o evento for substantivamente ruim (ex.: evasão, doença, desemprego). Para eventos positivos ou neutros, prefira "maiores chances de".</p>
+            </div>
+          </details>
+
+          <details>
+            <summary>③ Variável significativa com RC &lt; 1 (associada a menores chances / "fator de proteção")</summary>
+            <div class="inside">
+              <p><strong>Use quando:</strong> p &lt; 0,05 e Exp(B)/RC menor que 1.</p>
+              <div class="compare">
+                <div class="card bad"><h4>❌ Evite</h4><p>"Escola pública diminui a pessoa."</p></div>
+                <div class="card goodx"><h4>✅ Diga</h4><p>"Ter cursado o ensino médio em escola pública esteve associado a 16,8% menos chances do desfecho, em comparação à categoria de referência, controladas as demais variáveis (RC = 0,832; p = 0,012)."</p></div>
+              </div>
+            </div>
+          </details>
+
+          <details>
+            <summary>④ Variável NÃO significativa (o erro mais comum de redação)</summary>
+            <div class="inside">
+              <p><strong>Use quando:</strong> p ≥ 0,05.</p>
+              <div class="compare">
+                <div class="card bad"><h4>❌ Evite</h4><p>"Gênero não influencia o desfecho." <span class="mini-note">(afirma um fato sobre o mundo)</span></p></div>
+                <div class="card goodx"><h4>✅ Diga</h4><p>"Não houve evidência estatística suficiente de associação entre gênero e o desfecho neste modelo (RC = 0,909; p = 0,088)." <span class="mini-note">(afirma um limite da evidência disponível)</span></p></div>
+              </div>
+              <p class="mini-note">"Não significativo" nunca é o mesmo que "não tem efeito nenhum" — pode ser efeito pequeno, amostra insuficiente para aquela variável, ou de fato ausência de associação. A frase precisa refletir essa incerteza.</p>
+            </div>
+          </details>
+
+          <details>
+            <summary>⑤ Pseudo-R² de Nagelkerke (nunca "% de variância explicada")</summary>
+            <div class="inside">
+              <div class="compare">
+                <div class="card bad"><h4>❌ Evite</h4><p>"O modelo explica 31,8% da variação da variável dependente."</p></div>
+                <div class="card goodx"><h4>✅ Diga</h4><p>"O pseudo-R² de Nagelkerke foi de 0,318, sugerindo melhora substantiva do modelo em relação ao modelo nulo."</p></div>
+              </div>
+            </div>
+          </details>
+
+          <details>
+            <summary>⑥ Qualidade da classificação (sempre acurácia + sensibilidade + especificidade juntas)</summary>
+            <div class="inside">
+              <div class="compare">
+                <div class="card bad"><h4>❌ Evite</h4><p>"O modelo acerta 73,1% dos casos, então é um bom modelo."</p></div>
+                <div class="card goodx"><h4>✅ Diga</h4><p>"O modelo classificou corretamente 73,1% dos casos, com especificidade de 83,6% e sensibilidade de 53,3% — indicando desempenho mediano para identificar corretamente quem está no primeiro emprego formal, apesar da boa acurácia geral."</p></div>
+              </div>
+            </div>
+          </details>
+
+          <details>
+            <summary>⑦ Fechando o parágrafo: associação ≠ causalidade</summary>
+            <div class="inside">
+              <div class="compare">
+                <div class="card bad"><h4>❌ Evite</h4><p>"Isso prova que a raça causa o acesso ao primeiro emprego formal."</p></div>
+                <div class="card goodx"><h4>✅ Diga</h4><p>"Esse resultado sugere desigualdades associadas à origem racial nessa trajetória ocupacional, embora não deva ser tratado, isoladamente, como evidência causal."</p></div>
+              </div>
+            </div>
+          </details>
+        </div>
+      </section>
+
+      <section class="slide section" id="s12" data-title="12. Atividades e quiz">
+        <span class="pill">12. Atividades</span>
+        <h2>Exercícios guiados e quiz</h2>
+        <p class="lead">Use esta seção para checar compreensão durante a aula. As respostas aparecem ao clicar.</p>
+
+        <div class="accordion">
+          <details>
+            <summary>Atividade 1 — Identifique se a regressão logística é adequada</summary>
+            <div class="inside">
+              <p>Para cada variável dependente, diga se a regressão logística binária é adequada:</p>
+              <table>
+                <thead><tr><th>Variável dependente</th><th>Adequada?</th><th>Por quê?</th></tr></thead>
+                <tbody>
+                  <tr><td>Tem emprego formal? Sim/Não</td><td>Sim</td><td>Desfecho binário.</td></tr>
+                  <tr><td>Renda mensal em reais</td><td>Não</td><td>Variável contínua; regressão linear ou outro modelo pode ser mais adequado.</td></tr>
+                  <tr><td>Votou em A, B, C ou D</td><td>Não binária</td><td>Poderia exigir regressão logística multinomial.</td></tr>
+                  <tr><td>Evadiram do curso? Sim/Não</td><td>Sim</td><td>Desfecho binário.</td></tr>
+                </tbody>
+              </table>
+            </div>
+          </details>
+          <details>
+            <summary>Atividade 2 — Traduza RC = 0,379</summary>
+            <div class="inside">
+              <p>Interpretação recomendada: "As chances do grupo analisado correspondem a 0,379 vezes as chances da categoria de referência, isto é, são aproximadamente 62,1% menores."</p>
+              <p class="mini-note">Cálculo: 1 - 0,379 = 0,621 = 62,1%.</p>
+            </div>
+          </details>
+          <details>
+            <summary>Atividade 3 — O que fazer com acurácia alta e sensibilidade baixa?</summary>
+            <div class="inside">
+              <p>Não conclua imediatamente que o modelo é bom. Verifique o desequilíbrio entre classes, a matriz de classificação e a finalidade substantiva do modelo — exatamente como no caso real da Empresa X (73,1% de acurácia, mas só 53,3% de sensibilidade). Se o objetivo é identificar corretamente os casos positivos, baixa sensibilidade pode ser um problema grave.</p>
+            </div>
+          </details>
+          <details>
+            <summary>Atividade 4 — Inverta a categoria de referência</summary>
+            <div class="inside">
+              <p>Se RC("branco" vs. "não branco") = 5,288, qual é a RC aproximada de "não branco" vs. "branco"?</p>
+              <p class="mini-note">Resposta: 1 / 5,288 ≈ 0,189. As chances de "não branco" correspondem a cerca de 18,9% das chances de "branco" (ou seja, aproximadamente 81% menores).</p>
+            </div>
+          </details>
+        </div>
+
+        <div class="quiz" data-answer="b">
+          <h4>Quiz 1: O que significa RC = 2,5?</h4>
+          <button class="option" data-value="a">O grupo tem 2,5% de probabilidade de ter o desfecho.</button>
+          <button class="option" data-value="b">O grupo tem 2,5 vezes as chances do desfecho em relação à referência.</button>
+          <button class="option" data-value="c">O modelo explica 2,5% da variável dependente.</button>
+          <div class="feedback"></div>
+        </div>
+
+        <div class="quiz" data-answer="c">
+          <h4>Quiz 2: O que é falso sobre o R² de Nagelkerke?</h4>
+          <button class="option" data-value="a">É uma medida aproximada de melhora do modelo.</button>
+          <button class="option" data-value="b">É chamado de pseudo-R².</button>
+          <button class="option" data-value="c">Pode ser interpretado exatamente como o R² da regressão linear.</button>
+          <div class="feedback"></div>
+        </div>
+
+        <div class="quiz" data-answer="a">
+          <h4>Quiz 3: Quando a acurácia pode ser enganosa?</h4>
+          <button class="option" data-value="a">Quando as categorias do desfecho são muito desequilibradas.</button>
+          <button class="option" data-value="b">Quando há apenas duas categorias.</button>
+          <button class="option" data-value="c">Quando o modelo tem p &lt; 0,05.</button>
+          <div class="feedback"></div>
+        </div>
+
+        <div class="quiz" data-answer="b">
+          <h4>Quiz 4: No caso da Empresa X, a variável Raça teve RC = 5,288 tendo "não branco" como referência. Isso significa que:</h4>
+          <button class="option" data-value="a">Ser "não branco" aumenta em 5,288% as chances do desfecho.</button>
+          <button class="option" data-value="b">O grupo "branco" tem 5,288 vezes mais chances do desfecho do que o grupo "não branco".</button>
+          <button class="option" data-value="c">A raça explica 5,288% da variância do desfecho.</button>
+          <div class="feedback"></div>
+        </div>
+      </section>
+
+      <section class="slide section" id="closing" data-title="Síntese final">
+        <span class="pill">Fechamento</span>
+        <h2>Síntese final para a turma</h2>
+        <div class="grid grid-3">
+          <div class="card"><h4>1. Pergunta</h4><p>Use regressão logística quando o desfecho for binário e a pergunta for sobre chances de ocorrência.</p></div>
+          <div class="card"><h4>2. Interpretação</h4><p>O coração da leitura é a razão de chances relativa a uma categoria de referência: maior que 1 aumenta chances; menor que 1 reduz chances.</p></div>
+          <div class="card"><h4>3. Cuidado</h4><p>Não confunda associação com causalidade, não leia pseudo-R² como variância explicada literal e sempre olhe sensibilidade e especificidade junto com a acurácia.</p></div>
+        </div>
+      </section>
+
+  </div>
+</div>
+
+<div class="menu-overlay" id="menuOverlay">
+  <div class="menu-panel">
+    <h3>Sumário da aula</h3>
+    <div id="menuList"></div>
+    <button class="btn secondary" id="closeMenuBtn" style="margin-top:10px;width:100%">Fechar</button>
+  </div>
+</div>
+
+<script>
+function fmt(x, digits=2){return Number(x).toLocaleString('pt-BR',{minimumFractionDigits:digits,maximumFractionDigits:digits});}
+function pct(x,d=1){return Number(x).toLocaleString('pt-BR',{minimumFractionDigits:d,maximumFractionDigits:d})+'%';}
+function sigmoid(z){return 1/(1+Math.exp(-z));}
+
+const SCATTER_X=[4,6,8,8,10,10,12,12,14,16,16,18];
+const SCATTER_Y=[8,10,9,13,14,16,18,17,22,25,23,29];
+const OLS_SLOPE=1.512, OLS_INTERCEPT=0.113;
+
+function drawScatterReg(){
+  const b0=Number(document.getElementById('intercept0').value), b1=Number(document.getElementById('slope0').value);
+  document.getElementById('interceptLabel0').textContent=fmt(b0,2);
+  document.getElementById('slopeLabel0').textContent=fmt(b1,2);
+  const w=680,h=380,pad=48,xMin=0,xMax=20,yMin=0,yMax=32;
+  const sx=x=>pad+(x-xMin)/(xMax-xMin)*(w-2*pad);
+  const sy=y=>h-pad-(y-yMin)/(yMax-yMin)*(h-2*pad);
+  let grid='';
+  for(let i=0;i<=10;i++){let x=xMin+i*2;grid+=`<line class="gridline" x1="${sx(x)}" y1="${pad}" x2="${sx(x)}" y2="${h-pad}"/>`;}
+  for(let j=0;j<=8;j++){let y=j*4;grid+=`<line class="gridline" x1="${pad}" y1="${sy(y)}" x2="${w-pad}" y2="${sy(y)}"/>`;}
+  const lineY1=b0+b1*xMin, lineY2=b0+b1*xMax;
+  let resid='';
+  let sse=0;
+  SCATTER_X.forEach((x,i)=>{
+    const yhat=b0+b1*x, y=SCATTER_Y[i];
+    sse+=(y-yhat)*(y-yhat);
+    resid+=`<line x1="${sx(x)}" y1="${sy(y)}" x2="${sx(x)}" y2="${sy(yhat)}" stroke="#f59e0b" stroke-width="1.5" stroke-dasharray="4,3"/>`;
+  });
+  let points='';
+  SCATTER_X.forEach((x,i)=>{points+=`<circle class="point" cx="${sx(x)}" cy="${sy(SCATTER_Y[i])}" r="6"/>`;});
+  document.getElementById('scatterReg').innerHTML=`<svg viewBox="0 0 ${w} ${h}" aria-label="Dispersão entre anos de estudo e renda com reta ajustável">
+    ${grid}
+    <line class="axis" x1="${pad}" y1="${h-pad}" x2="${w-pad}" y2="${h-pad}"/>
+    <line class="axis" x1="${pad}" y1="${pad}" x2="${pad}" y2="${h-pad}"/>
+    <text class="label" x="${w/2-60}" y="${h-10}">Anos de estudo (X)</text>
+    <text class="label" x="14" y="${pad-14}" transform="rotate(0)">Renda, centenas de R$ (Y)</text>
+    ${resid}
+    <line x1="${sx(xMin)}" y1="${sy(lineY1)}" x2="${sx(xMax)}" y2="${sy(lineY2)}" class="curve2" stroke-width="3"/>
+    ${points}
+  </svg>`;
+  const optimal=Math.abs(b1-OLS_SLOPE)<0.06 && Math.abs(b0-OLS_INTERCEPT)<0.6;
+  document.getElementById('scatterResult').innerHTML=`<p>Reta atual: <strong>Renda = ${fmt(b0,2)} + ${fmt(b1,2)} × anos de estudo</strong></p>
+  <p>Erro total (soma dos quadrados dos resíduos, as linhas tracejadas): <span class="big-number">${fmt(sse,1)}</span></p>
+  <p class="mini-note">${optimal? '🎯 Você está muito perto (ou exatamente) da reta que minimiza o erro — esta é a reta que a regressão linear escolheria.' : 'Tente mover os controles até o "erro total" ficar o menor possível, ou clique em "Ajuste automático".'}</p>`;
+
+  const dir=b1>=0?'aumento':'redução';
+  const reaisB1=Math.abs(b1)*100;
+  const reaisB0=b0*100;
+  document.getElementById('scatterPhrase').innerHTML=`<h4>Frase gerada com os valores atuais</h4>
+  <p><strong>Sobre a inclinação:</strong> "Para cada ano adicional de estudo, espera-se ${dir==='aumento'?'um aumento':'uma redução'} médio${dir==='aumento'?'':'a'} de ${fmt(Math.abs(b1),2)} centena${Math.abs(b1)!=1?'s':''} de reais (≈ R$ ${fmt(reaisB1,0)}) na renda mensal."</p>
+  <p><strong>Sobre o intercepto:</strong> "Uma pessoa com 0 ano de estudo teria renda mensal prevista de ${b0>=0?'aproximadamente':'aproximadamente -'} ${fmt(Math.abs(b0),2)} centena(s) de reais (≈ R$ ${fmt(Math.abs(reaisB0),0)})."</p>`;
+}
+
+function drawLinearVsLogit(){
+  const w=680,h=390,p=44;
+  const xMin=-3,xMax=3,yMin=-.3,yMax=1.3;
+  const sx=x=>p+(x-xMin)/(xMax-xMin)*(w-2*p);
+  const sy=y=>h-p-(y-yMin)/(yMax-yMin)*(h-2*p);
+  let grid='';
+  for(let i=0;i<=6;i++){let x=xMin+i;grid+=`<line class="gridline" x1="${sx(x)}" y1="${p}" x2="${sx(x)}" y2="${h-p}"/>`;}
+  for(let j=0;j<=4;j++){let y=j*.25;grid+=`<line class="gridline" x1="${p}" y1="${sy(y)}" x2="${w-p}" y2="${sy(y)}"/>`;}
+  let line=`M ${sx(-3)} ${sy(.15+(.24*(-3+3)))} L ${sx(3)} ${sy(.15+.24*(3+3))}`;
+  let curve='';
+  for(let i=0;i<=120;i++){let x=xMin+(xMax-xMin)*i/120;let y=sigmoid(-.6+1.2*x);curve+=(i?' L ':'M ')+sx(x)+' '+sy(y);}
+  document.getElementById('linearVsLogit').innerHTML=`<svg viewBox="0 0 ${w} ${h}" aria-label="Comparação entre reta e curva logística">
+    ${grid}<line class="axis" x1="${p}" y1="${sy(0)}" x2="${w-p}" y2="${sy(0)}"/><line class="axis" x1="${p}" y1="${sy(1)}" x2="${w-p}" y2="${sy(1)}"/>
+    <path d="${line}" class="curve2"/><path d="${curve}" class="curve"/>
+    <text x="${p}" y="25" class="label-strong">A reta pode sair do intervalo 0–1</text>
+    <text x="${w-285}" y="25" class="label-strong">A curva logística fica entre 0 e 1</text>
+    <text x="${w-p-50}" y="${sy(1)-8}" class="label">p = 1</text><text x="${w-p-50}" y="${sy(0)+18}" class="label">p = 0</text>
+  </svg>`;
+}
+
+function updateProbOdds(){
+  const v=Number(document.getElementById('probSlider').value);
+  const p=v/100; const odds=p/(1-p);
+  document.getElementById('probLabel').textContent=pct(v,0);
+  document.getElementById('probOddsResult').innerHTML=`<div class="big-number">odds = ${fmt(odds,2)}</div>
+  <p>Com probabilidade de <strong>${pct(v,0)}</strong>, a probabilidade de não ocorrer é <strong>${pct(100-v,0)}</strong>.</p>
+  <p>Logo: odds = ${fmt(p,2)} / ${fmt(1-p,2)} = <strong>${fmt(odds,2)}</strong>.</p>`;
+}
+
+function updateOR(){
+  const a=Number(document.getElementById('a').value)||0, b=Number(document.getElementById('b').value)||0, c=Number(document.getElementById('c').value)||0, d=Number(document.getElementById('d').value)||0;
+  let html='';
+  if(b*c===0){html='<p>Preencha valores maiores que zero nas células necessárias para calcular a RC.</p>';} else {
+    const oddsExp=a/b, oddsN=c/d, or=(a*d)/(b*c);
+    const interp=or>1?`O grupo exposto tem <strong>${fmt(or,2)} vezes</strong> as chances do evento em relação ao grupo não exposto.`:or<1?`O grupo exposto tem <strong>${fmt(or,2)} vezes</strong> as chances do evento, ou aproximadamente <strong>${pct((1-or)*100,1)} menores</strong> chances.`:`As chances são iguais nos dois grupos.`;
+    html=`<h4>Resultado</h4><table><tbody><tr><td>Odds dos expostos</td><td class="right">${a}/${b} = <strong>${fmt(oddsExp,2)}</strong></td></tr><tr><td>Odds dos não expostos</td><td class="right">${c}/${d} = <strong>${fmt(oddsN,2)}</strong></td></tr><tr><td>Razão de chances (RC)</td><td class="right"><strong>${fmt(or,2)}</strong></td></tr></tbody></table><p>${interp}</p><p class="mini-note">Fórmula: RC = (a × d) / (b × c).</p>`;
+  }
+  document.getElementById('orResult').innerHTML=html;
+}
+
+function updateRefToggle(ref){
+  document.querySelectorAll('#refToggle button').forEach(b=>b.classList.toggle('active', b.dataset.ref===ref));
+  let html='';
+  if(ref==='nao-branco'){
+    html=`<h4>Referência = "não branco"</h4>
+    <p>RC ("branco" vs. "não branco") = <strong>5,288</strong></p>
+    <p>Frase correta: "O grupo <strong>branco</strong> apresentou <strong>5,288 vezes mais chances</strong> do desfecho em comparação ao grupo <strong>não branco</strong>, mantidas constantes as demais variáveis."</p>`;
+  } else {
+    const inv=1/5.288;
+    html=`<h4>Referência = "branco"</h4>
+    <p>RC ("não branco" vs. "branco") ≈ <strong>${fmt(inv,3)}</strong> (isto é, 1 / 5,288)</p>
+    <p>Frase correta: "O grupo <strong>não branco</strong> apresentou chances equivalentes a aproximadamente <strong>${fmt(inv,3)}</strong> das chances do grupo <strong>branco</strong> — ou seja, cerca de <strong>${pct((1-inv)*100,1)} menores</strong> — mantidas constantes as demais variáveis."</p>`;
+  }
+  document.getElementById('refResult').innerHTML=html;
+}
+
+function drawLogitCurve(){
+  const b0=Number(document.getElementById('intercept').value), b1=Number(document.getElementById('slope').value), xv=Number(document.getElementById('xvalue').value);
+  document.getElementById('interceptLabel').textContent=fmt(b0,2);
+  document.getElementById('slopeLabel').textContent=fmt(b1,2);
+  document.getElementById('xvalueLabel').textContent=fmt(xv,2);
+  const w=680,h=360,pad=46,xMin=-3,xMax=3,yMin=0,yMax=1;
+  const sx=x=>pad+(x-xMin)/(xMax-xMin)*(w-2*pad);
+  const sy=y=>h-pad-(y-yMin)/(yMax-yMin)*(h-2*pad);
+  let grid='';
+  for(let i=0;i<=6;i++){let x=xMin+i;grid+=`<line class="gridline" x1="${sx(x)}" y1="${pad}" x2="${sx(x)}" y2="${h-pad}"/>`;}
+  for(let j=0;j<=4;j++){let y=j*.25;grid+=`<line class="gridline" x1="${pad}" y1="${sy(y)}" x2="${w-pad}" y2="${sy(y)}"/>`;}
+  let path='';
+  for(let i=0;i<=160;i++){let x=xMin+(xMax-xMin)*i/160;let y=sigmoid(b0+b1*x);path+=(i?' L ':'M ')+sx(x)+' '+sy(y);}
+  const pv=sigmoid(b0+b1*xv);
+  document.getElementById('logitCurve').innerHTML=`<svg viewBox="0 0 ${w} ${h}">${grid}<line class="axis" x1="${pad}" y1="${h-pad}" x2="${w-pad}" y2="${h-pad}"/><line class="axis" x1="${pad}" y1="${pad}" x2="${pad}" y2="${h-pad}"/><path d="${path}" class="curve"/><circle class="point" cx="${sx(xv)}" cy="${sy(pv)}" r="7"/><text class="label-strong" x="${sx(xv)+10}" y="${sy(pv)-10}">p = ${pct(pv*100,1)}</text><text class="label" x="${w-pad-70}" y="${sy(1)+16}">100%</text><text class="label" x="${w-pad-55}" y="${sy(0)-8}">0%</text></svg>`;
+  const odds=pv/(1-pv);
+  document.getElementById('logitResult').innerHTML=`<p>Para X = <strong>${fmt(xv,2)}</strong>, o logit estimado é <strong>${fmt(b0+b1*xv,2)}</strong>.</p><p>A probabilidade estimada é <span class="big-number">${pct(pv*100,1)}</span></p><p>As odds estimadas são <strong>${fmt(odds,2)}</strong>.</p>`;
+}
+
+function updateClass(){
+  const total=1000;
+  const pos=Number(document.getElementById('posRange').value); const neg=total-pos;
+  const sens=Number(document.getElementById('sensRange').value)/100; const spec=Number(document.getElementById('specRange').value)/100;
+  document.getElementById('posLabel').textContent=pos;
+  document.getElementById('sensLabel').textContent=pct(sens*100,0);
+  document.getElementById('specLabel').textContent=pct(spec*100,0);
+  const tp=Math.round(pos*sens), fn=pos-tp, tn=Math.round(neg*spec), fp=neg-tn;
+  const acc=(tp+tn)/total;
+  document.querySelector('#confTable tbody').innerHTML=`<tr><td><strong>Real: Sim</strong></td><td>${tp}</td><td>${fn}</td><td>${pos}</td></tr><tr><td><strong>Real: Não</strong></td><td>${fp}</td><td>${tn}</td><td>${neg}</td></tr>`;
+  document.getElementById('classResult').innerHTML=`<h4>Métricas calculadas</h4><p><span class="big-number">${pct(acc*100,1)}</span> de acurácia</p><table><tbody><tr><td>Verdadeiros positivos</td><td class="right">${tp}</td></tr><tr><td>Falsos negativos</td><td class="right">${fn}</td></tr><tr><td>Verdadeiros negativos</td><td class="right">${tn}</td></tr><tr><td>Falsos positivos</td><td class="right">${fp}</td></tr></tbody></table><p class="mini-note">Observe como a acurácia pode parecer alta quando há muitos casos negativos e a especificidade é alta — exatamente o que ocorre no caso real da Empresa X.</p>`;
+}
+
+function updateORPhrase(){
+  const or=Number(document.getElementById('orPhrase').value);
+  let msg='';
+  if(!or || or<=0){msg='Informe uma RC maior que zero.'}
+  else if(Math.abs(or-1)<.0001){msg='RC = 1: as chances são iguais às da categoria de referência.'}
+  else if(or>1){msg=`RC = ${fmt(or,3)}: as chances são ${fmt(or,3)} vezes maiores que as da categoria de referência. Em termos percentuais aproximados, isso representa aumento de ${pct((or-1)*100,1)} nas odds.`}
+  else{msg=`RC = ${fmt(or,3)}: as chances correspondem a ${fmt(or,3)} vezes as da referência. Isso equivale a aproximadamente ${pct((1-or)*100,1)} menores chances.`}
+  document.getElementById('orPhraseResult').innerHTML=`<p>${msg}</p>`;
+}
+
+const COEF_DATA=[
+  {v:'Raça (branco vs. não branco)', b:1.665, wald:14.2, p:'< 0,001', or:5.288,
+   text:'A categoria "branco" apresentou 5,288 vezes mais chances do desfecho em relação a "não branco", mantidas constantes as demais variáveis. É o efeito de maior magnitude entre os preditores do modelo.'},
+  {v:'Até 24 anos', b:0.482, wald:9.8, p:'< 0,001', or:1.619,
+   text:'Estar na faixa etária até 24 anos está associado a cerca de 62% mais chances de o vínculo atual ser o primeiro emprego formal — coerente com a hipótese de que jovens concentram primeiros vínculos.'},
+  {v:'Renda familiar até 2 SM', b:0.311, wald:6.1, p:'< 0,001', or:1.365,
+   text:'Famílias com renda até 2 salários mínimos apresentam cerca de 36,5% mais chances do desfecho, sugerindo entrada mais precoce no mercado formal entre grupos de menor renda.'},
+  {v:'Escola pública', b:-0.184, wald:3.4, p:'0,012', or:0.832,
+   text:'Ter cursado o ensino médio em escola pública está associado a cerca de 16,8% menos chances do desfecho, controladas as demais variáveis.'},
+  {v:'Gênero feminino', b:-0.095, wald:1.7, p:'0,088', or:0.909,
+   text:'O coeficiente de gênero não atingiu o limiar convencional de significância (p > 0,05) neste exemplo — a leitura correta é dizer que não há evidência estatística suficiente de associação, e não que "não existe diferença".'},
+];
+
+function buildCoefTable(){
+  const tbody=document.querySelector('#coefTable tbody');
+  tbody.innerHTML=COEF_DATA.map((row,i)=>`<tr class="clickable" data-i="${i}"><td>${row.v}</td><td>${fmt(row.b,3)}</td><td>${fmt(row.wald,1)}</td><td>${row.p}</td><td><strong>${fmt(row.or,3)}</strong></td></tr>`).join('');
+  tbody.querySelectorAll('tr').forEach(tr=>tr.addEventListener('click',()=>{
+    tbody.querySelectorAll('tr').forEach(t=>t.classList.remove('selected'));
+    tr.classList.add('selected');
+    const row=COEF_DATA[Number(tr.dataset.i)];
+    document.getElementById('coefResult').innerHTML=`<h4>${row.v}</h4><p>${row.text}</p>`;
+  }));
+}
+
+function setupStepper(){
+ const steps=[...document.querySelectorAll('#outputStepper .step')]; let idx=0;
+ const prev=document.getElementById('prevStep'), next=document.getElementById('nextStep');
+ const dotsWrap=document.getElementById('stepDots');
+ dotsWrap.innerHTML=steps.map((_,i)=>`<span data-i="${i}"></span>`).join('');
+ const dots=[...dotsWrap.querySelectorAll('span')];
+ function show(){
+   steps.forEach((s,i)=>s.classList.toggle('active',i===idx));
+   dots.forEach((d,i)=>d.classList.toggle('on',i===idx));
+   prev.disabled=idx===0;
+   next.textContent=idx===steps.length-1?'Fim':'Avançar';
+ }
+ prev.addEventListener('click',()=>{if(idx>0){idx--;show();}});
+ next.addEventListener('click',()=>{if(idx<steps.length-1){idx++;show();}});
+ dots.forEach(d=>d.addEventListener('click',()=>{idx=Number(d.dataset.i);show();}));
+ show();
+}
+function setupQuiz(){
+ document.querySelectorAll('.quiz').forEach(q=>{
+  const ans=q.dataset.answer; const fb=q.querySelector('.feedback');
+  q.querySelectorAll('.option').forEach(btn=>btn.addEventListener('click',()=>{
+    const ok=btn.dataset.value===ans;
+    fb.className='feedback '+(ok?'ok':'no');
+    fb.innerHTML=ok?'✅ Correto.':'❌ Ainda não. Releia a explicação acima e tente novamente.';
+  }));
+ });
+}
+function setupDeck(){
+  const slides=[...document.querySelectorAll('.slide')];
+  const wrapper=document.getElementById('deckWrapper');
+  const counter=document.getElementById('slideCounter');
+  const bar=document.getElementById('topProgressBar');
+  const eyebrow=document.getElementById('slideEyebrow');
+  const prevBtn=document.getElementById('prevBtn');
+  const nextBtn=document.getElementById('nextBtn');
+  const menuOverlay=document.getElementById('menuOverlay');
+  const menuList=document.getElementById('menuList');
+  let idx=0;
+
+  menuList.innerHTML=slides.map((s,i)=>`<button class="menu-item" data-i="${i}"><span>${s.dataset.title||('Slide '+(i+1))}</span><span>${i+1}</span></button>`).join('');
+  const menuItems=[...menuList.querySelectorAll('.menu-item')];
+  menuItems.forEach(btn=>btn.addEventListener('click',()=>{go(Number(btn.dataset.i));closeMenu();}));
+
+  function render(){
+    slides.forEach((s,i)=>s.classList.toggle('active', i===idx));
+    counter.textContent=(idx+1)+' / '+slides.length;
+    eyebrow.textContent=slides[idx].dataset.title||'';
+    bar.style.width=((idx+1)/slides.length*100)+'%';
+    wrapper.scrollTop=0;
+    prevBtn.disabled=idx===0;
+    nextBtn.disabled=idx===slides.length-1;
+    menuItems.forEach((b,i)=>b.classList.toggle('active', i===idx));
+  }
+  function go(i){ idx=Math.max(0,Math.min(slides.length-1,i)); render(); }
+
+  prevBtn.addEventListener('click',()=>go(idx-1));
+  nextBtn.addEventListener('click',()=>go(idx+1));
+
+  function openMenu(){menuOverlay.classList.add('open');}
+  function closeMenu(){menuOverlay.classList.remove('open');}
+  document.getElementById('menuBtn').addEventListener('click',openMenu);
+  document.getElementById('closeMenuBtn').addEventListener('click',closeMenu);
+  menuOverlay.addEventListener('click',(e)=>{if(e.target===menuOverlay)closeMenu();});
+
+  window.addEventListener('keydown',(e)=>{
+    if(menuOverlay.classList.contains('open')){
+      if(e.key==='Escape')closeMenu();
+      return;
+    }
+    const tag=(document.activeElement&&document.activeElement.tagName)||'';
+    if(['INPUT','SELECT','TEXTAREA'].includes(tag)) return;
+    if(['ArrowRight','ArrowDown','PageDown'].includes(e.key)){e.preventDefault();go(idx+1);}
+    if(['ArrowLeft','ArrowUp','PageUp'].includes(e.key)){e.preventDefault();go(idx-1);}
+    if(e.key==='Escape')closeMenu();
+  });
+
+  render();
+}
+
+function setupScatterReg(){
+  document.getElementById('autofitBtn').addEventListener('click',()=>{
+    document.getElementById('intercept0').value=OLS_INTERCEPT;
+    document.getElementById('slope0').value=OLS_SLOPE;
+    drawScatterReg();
+  });
+  document.getElementById('resetBtn0').addEventListener('click',()=>{
+    document.getElementById('intercept0').value=2;
+    document.getElementById('slope0').value=1;
+    drawScatterReg();
+  });
+  ['intercept0','slope0'].forEach(id=>document.getElementById(id).addEventListener('input',drawScatterReg));
+}
+
+window.addEventListener('DOMContentLoaded',()=>{
+ drawScatterReg(); setupScatterReg();
+ drawLinearVsLogit(); updateProbOdds(); updateOR(); updateRefToggle('nao-branco'); drawLogitCurve(); buildCoefTable(); updateClass(); updateORPhrase(); setupStepper(); setupQuiz(); setupDeck();
+ ['probSlider'].forEach(id=>document.getElementById(id).addEventListener('input',updateProbOdds));
+ ['a','b','c','d'].forEach(id=>document.getElementById(id).addEventListener('input',updateOR));
+ document.querySelectorAll('#refToggle button').forEach(btn=>btn.addEventListener('click',()=>updateRefToggle(btn.dataset.ref)));
+ ['intercept','slope','xvalue'].forEach(id=>document.getElementById(id).addEventListener('input',drawLogitCurve));
+ ['posRange','sensRange','specRange'].forEach(id=>document.getElementById(id).addEventListener('input',updateClass));
+ document.getElementById('orPhrase').addEventListener('input',updateORPhrase);
+});
+</script>
+</body>
+</html>
